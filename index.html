@@ -453,7 +453,7 @@ A fresh start from a short brief re-writes ~55k tokens (~US$0.44): /clear, then 
           <li><strong>Every mechanism has unit tests,</strong> run in CI on macOS, Linux and Windows.</li>
           <li><strong>Ideas are first replayed</strong> on recorded sessions, at no model cost, to see what's at stake.</li>
           <li><strong>A few targeted agent runs</strong> answer what only a model can, with the pass criteria written before the first run.</li>
-          <li><strong>0.4.0 was validated before release</strong> against Claude Code without the plugin, on real open-source repositories, with its method and pass rules posted before the first run (<a href="https://github.com/thinwindow/thinwindow/issues/38">#38</a>). Every benchmark task and every resume chain completed with ThinWindow, as they did without it. When the second task of a chain started fresh after the prompt cache expired, it cost less per completed chain than continuing.</li>
+          <li><strong>0.4.0 was validated before release</strong> against Claude Code without the plugin, on real open-source repositories, with its method and pass rules posted before the first run (<a href="https://github.com/thinwindow/thinwindow/issues/38">#38</a>). On Sonnet 5.5, every benchmark task and every resume chain completed with ThinWindow, as they did without it. When the second task of a chain started fresh after the prompt cache expired, it cost less per completed chain than continuing. The expiry was priced in from each run's token counts, not waited out; with a warm cache, continuing cost less.</li>
         </ul>
         <p>The method, the raw rows and the agents' scrubbed transcripts are public in <a href="https://github.com/thinwindow/thinwindow/tree/main/bench">bench/</a>.</p>
       </section>
@@ -511,7 +511,7 @@ A fresh start from a short brief re-writes ~55k tokens (~US$0.44): /clear, then 
         <h2 id="faq-h"><span class="num">15</span>FAQ</h2>
         <details>
           <summary>Does it make Claude worse at the task?</summary>
-          <p>In 0.4.0's validation, every benchmark task and resume chain completed with ThinWindow as often as without it, and a blind review of final answers found them correct and complete in both conditions. Every guard fails open.</p>
+          <p>In 0.4.0's validation on Sonnet 5.5, every benchmark task and resume chain completed with ThinWindow as often as without it, and a blind review of final answers found them correct and complete in both conditions. Every guard fails open.</p>
         </details>
         <details>
           <summary>How is it different from Claude Code's "Resume from summary"?</summary>
