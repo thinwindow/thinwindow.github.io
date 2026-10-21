@@ -20,7 +20,7 @@
   <aside class="sidebar">
     <a class="brand" href="#overview">
       <img src="assets/icon.iconset/icon_32x32@2x.png" alt="" width="32" height="32">
-      <span>ThinWindow <small>docs · v0.4.0</small></span>
+      <span>ThinWindow <small>docs · v0.5.0</small></span>
     </a>
     <nav aria-label="Documentation">
       <div class="nav-group">
@@ -179,7 +179,7 @@ Read less
 - Don't send a subagent to explore what one grep answers.
 
 Print less
-- Cap command output: quiet flags, `| tail -n 40`, `--max-count`, `git diff --stat`, `git log -n 10 --oneline`, or `thinwindow-run &lt;cmd&gt;` for installs, builds and tests.
+- Cap command output: quiet flags, `| tail -n 40`, `--max-count`, `git diff --stat`, `git log -n 10 --oneline`.
 
 Write less
 - Before adding code, check that it needs to exist and that the codebase, standard library or platform doesn't already do it. Then make the smallest change that works.
@@ -211,12 +211,13 @@ Say less
           <div class="flow-step tw">
             <span class="dot">3</span>
             <div>
-              <h3>ThinWindow's <code>PreToolUse</code> hook inspects it</h3>
-              <p>Locally, in a Node script, with no network access. It ends in one of three outcomes:</p>
+              <h3>ThinWindow's hooks inspect it</h3>
+              <p>Locally, in a Node script, with no network access. It ends in one of four outcomes:</p>
               <div class="outcomes">
                 <div><b>Passes unchanged</b>Most calls. Already ranged, capped, or allowlisted.</div>
                 <div><b>Fixed in place</b>The input is rewritten to a cheaper equivalent, with a note to the agent. No turn is lost.</div>
                 <div><b>Refused, with a replacement</b>The agent is told why and what to run instead.</div>
+                <div><b>Cut after it runs</b>A noisy command runs as written; when it succeeds with a long output, the agent gets the last lines and the path of the full log.</div>
               </div>
             </div>
           </div>
@@ -249,9 +250,9 @@ Say less
         <div class="table-wrap"><table>
           <thead><tr><th>Category</th><th>Examples</th><th>What happens</th></tr></thead>
           <tbody>
-            <tr><td>Noisy commands</td><td>install, build, test and lint for npm, pnpm, yarn, bun, pip, uv, poetry, pytest, cargo, go, gradle, maven, dotnet, make and more</td><td>Run through <code>thinwindow-run</code> automatically, unless already capped by a pipe, a redirect, a quiet flag or <code>thinwindow-run</code>. Background commands are left alone. With <code>"rewrite": false</code>, a soft block.</td></tr>
+            <tr><td>Noisy commands</td><td>install, build, test and lint for npm, pnpm, yarn, bun, pip, uv, poetry, pytest, cargo, go, gradle, maven, dotnet, make and more</td><td>Run as written, so your permission rules match them. When one succeeds with more than 10 lines on a stream, a <code>PostToolUse</code> hook cuts that stream to its last 10 lines and adds the path of the full log. A failed run, or a command that also runs something else, comes back whole. Already capped commands (a pipe, a redirect, a quiet flag) and background commands are left alone. With <code>"rewrite": false</code>, a soft block.</td></tr>
             <tr><td>Unbounded scope</td><td>Recursive <code>grep</code>/<code>rg</code>/<code>ag</code> over the whole tree with no cap or exclude; a bare <code>git diff</code></td><td>Fixed in place: the search is limited to its first 100 lines (grep also skips <code>node_modules</code>, <code>.git</code>, <code>dist</code>, <code>build</code>), and <code>git diff</code> runs as <code>git diff --stat</code>. With <code>"rewrite": false</code>, a soft block.</td></tr>
-            <tr><td>Anti-patterns</td><td><code>cat</code> (or <code>bat</code>, <code>less</code>, <code>more</code>, <code>nl</code>, <code>tac</code>) of a big, lock, minified or binary file; <code>git log</code> without <code>-n</code>, a range or <code>--since</code>; <code>ls -R</code>; <code>tree</code> without <code>-L</code>; <code>find</code> from the repo root without <code>-maxdepth</code></td><td>Refused, with a cheaper replacement. Output piped into <code>head</code>, <code>tail</code>, <code>grep</code>, <code>wc</code> and similar, or redirected to a file, counts as capped and is not blocked.</td></tr>
+            <tr><td>Anti-patterns</td><td><code>cat</code> (or <code>bat</code>, <code>less</code>, <code>more</code>, <code>nl</code>, <code>tac</code>) of a big, lock, minified or binary file; <code>git log</code> without <code>-n</code>, a range or <code>--since</code>; <code>ls -R</code>; <code>tree</code> without <code>-L</code>; <code>find</code> from the repo root without <code>-maxdepth</code> (with <code>-delete</code> it runs; with <code>-exec</code>, a soft block)</td><td>Refused, with a cheaper replacement. Output piped into <code>head</code>, <code>tail</code>, <code>grep</code>, <code>wc</code> and similar, or redirected to a file, counts as capped and is not blocked.</td></tr>
           </tbody>
         </table></div>
 
@@ -259,7 +260,7 @@ Say less
         <p>A content search (<code>output_mode: "content"</code>) with no <code>head_limit</code> gets <code>head_limit: 100</code>. File-list and count searches are left alone.</p>
 
         <h3><code>thinwindow-run</code></h3>
-        <p>Runs a command and keeps its full stdout and stderr in a log under the OS temp directory, never inside your repository. It prints the exit code and duration, then:</p>
+        <p>Part of the Agent Skill, for agents without the hooks; in Claude Code, a direct <code>thinwindow-run &lt;cmd&gt;</code> call is pointed at it. Runs a command and keeps its full stdout and stderr in a log under the OS temp directory, never inside your repository. It prints the exit code and duration, then:</p>
         <ul>
           <li>on success, the last 10 lines;</li>
           <li>on failure, the last 40 lines plus earlier error-like lines (error, fail, warn, panic, exception), deduplicated;</li>
@@ -271,10 +272,10 @@ Say less
         <p>At the end of every turn: updates the session's brief from what the transcript gained since the last turn (at most 4 MB per turn, plus <code>git status</code> after a turn that could have changed files), then shows the setup-cost notice when one is due. Each part fails open on its own.</p>
 
         <h3><code>UserPromptSubmit</code></h3>
-        <p>Before each prompt you send: the cold-resume notice. It reads the last 256 KB of the transcript for the last request's time, context size and model, and holds the prompt once per idle gap when the session was idle for over an hour with at least <code>coldResumeMinTokens</code> tokens of context. It acts only in sessions a person attends, and never on commands or on prompts Claude Code writes itself.</p>
+        <p>Before each prompt you send: the cold-resume notice. It reads the last 256 KB of the transcript for the last request's time, context size and model, and holds the prompt once per idle gap when the session was idle for over an hour with at least <code>coldResumeMinTokens</code> tokens of context. In the desktop app, where a held prompt isn't put back in the input box, it lets the prompt through with a one-line notice instead (<code>coldResumeMode</code>). It acts only in sessions a person attends, and never on commands or on prompts Claude Code writes itself.</p>
 
         <h3>State, logs and briefs</h3>
-        <p>Read tracking and the hooks' counts live in one small file per session in <code>&lt;os temp dir&gt;/thinwindow/state/</code>, with one tiny file per project for the setup-cost notice. <code>thinwindow-run</code> logs go to <code>&lt;os temp dir&gt;/thinwindow/logs/</code>, and briefs to the plugin's data folder. ThinWindow removes them once they're 7 days old, the next time it runs. Nothing is written inside your repository, and nothing is sent anywhere.</p>
+        <p>Read tracking and the hooks' counts live in one small file per session in <code>&lt;os temp dir&gt;/thinwindow/state/</code>, with one tiny file per project for the setup-cost notice. The logs of cut output and of <code>thinwindow-run</code> go to <code>&lt;os temp dir&gt;/thinwindow/logs/</code>; both folders are created so only your user can open them. Briefs go to the plugin's data folder. ThinWindow removes them once they're 7 days old, the next time it runs. Nothing is written inside your repository, and nothing is sent anywhere.</p>
 
         <h3>What Claude gets back</h3>
         <p>What the agent asks for, and what it gets with ThinWindow installed. All of these are default behaviours of the plugin.</p>
@@ -285,7 +286,7 @@ Say less
         </div>
         <div class="example">
           <div class="call">npm test</div>
-          <div class="result"><b>Fixed in place.</b> Runs as <code>thinwindow-run npm test</code>. If the tests pass, the agent sees the exit code, the duration and 10 lines. If they fail, it sees the last 40 lines, the error lines, and where the full log is.</div>
+          <div class="result"><b>Cut after it runs.</b> Runs as <code>npm test</code>, so <code>Bash(npm test:*)</code> still matches. If the tests pass, the agent sees the exit code, the duration, the last 10 lines and where the full log is. If they fail, it sees the output as Claude Code returns it.</div>
         </div>
         <div class="example">
           <div class="call">grep -rn useColor .</div>
@@ -321,7 +322,7 @@ Say less
         <p>At the end of every turn, ThinWindow keeps a short brief of the session up to date, without calling a model: the goal, your last requests, the files changed, the last commands with their exit codes, and Claude's last reply. A session that never uses the brief gains no tokens from it.</p>
 
         <h3>The cold-resume notice</h3>
-        <p>You send a prompt to a session that has been idle for over an hour with at least 100k tokens of context. ThinWindow holds it once and shows what continuing re-writes, in tokens and in US$ at the model's list price, next to a fresh start. You decide every time: send the prompt again to continue. Commands are never held, and neither are prompts in <code>-p</code>, SDK or background sessions. In the desktop app the notice is an "A hook blocked your prompt" card, with "Edit prompt" to send it again. Example:</p>
+        <p>You send a prompt to a session that has been idle for over an hour with at least 100k tokens of context. ThinWindow holds it once and shows what continuing re-writes, in tokens and in US$ at the model's list price, next to a fresh start. You decide every time: send the prompt again to continue. Commands are never held, and neither are prompts in <code>-p</code>, SDK or background sessions. In the desktop app, which doesn't put a held prompt back in the input box, the prompt goes through and one line says what it re-writes; <code>"coldResumeMode": "block"</code> holds it there too. Example:</p>
 <pre><code>ThinWindow held this message: this session has been idle 9 h, so its prompt cache has expired.
 Continuing re-writes ~427k tokens (~US$3.42 at Opus 5.5 list price): send it again.
 A fresh start from a short brief re-writes ~55k tokens (~US$0.44): /clear, then /thinwindow:resume &lt;your request&gt;.</code></pre>
@@ -370,7 +371,7 @@ A fresh start from a short brief re-writes ~55k tokens (~US$0.44): /clear, then 
         <p>Paste <code>adapters/AGENTS.md</code> into your project's <code>AGENTS.md</code>, or into whichever instructions file your agent loads.</p>
 
         <h3>Turning it off</h3>
-        <p>Set <code>THINWINDOW=off</code> in the environment, or <code>"enabled": false</code> in <code>.thinwindow.json</code>. With it off, <code>thinwindow-run</code> runs commands with their output untouched.</p>
+        <p>Set <code>THINWINDOW=off</code> in the environment, or <code>"enabled": false</code> in <code>.thinwindow.json</code>. With it off, <code>thinwindow-run</code> runs commands with their output as it is.</p>
         <p class="small muted">Requirements: Node.js 18 or newer. No other dependencies.</p>
       </section>
 
@@ -396,6 +397,7 @@ A fresh start from a short brief re-writes ~55k tokens (~US$0.44): /clear, then 
   "rewrite": true,
   "briefs": true,
   "coldResumeNotice": true,
+  "coldResumeMode": "block",
   "coldResumeMinTokens": 100000,
   "setupNotice": true,
   "setupNoticeMinTokens": 40000,
@@ -413,6 +415,7 @@ A fresh start from a short brief re-writes ~55k tokens (~US$0.44): /clear, then 
             <tr><td><code>rewrite</code></td><td><code>true</code></td><td>Fix wasteful calls in place. <code>false</code> refuses them instead, as a soft block, at the cost of a turn each.</td></tr>
             <tr><td><code>briefs</code></td><td><code>true</code></td><td><code>false</code> stops keeping session briefs for <code>/thinwindow:resume</code>.</td></tr>
             <tr><td><code>coldResumeNotice</code></td><td><code>true</code></td><td><code>false</code> turns off the cold-resume notice.</td></tr>
+            <tr><td><code>coldResumeMode</code></td><td><code>"block"</code>; <code>"notify"</code> in the desktop app</td><td><code>"block"</code> holds the prompt once, <code>"notify"</code> lets it through with one line, <code>"off"</code> turns the notice off.</td></tr>
             <tr><td><code>coldResumeMinTokens</code></td><td><code>100000</code></td><td>The smallest context, in tokens, for which the notice holds a prompt.</td></tr>
             <tr><td><code>setupNotice</code></td><td><code>true</code></td><td><code>false</code> turns off the setup-cost notice.</td></tr>
             <tr><td><code>setupNoticeMinTokens</code></td><td><code>40000</code></td><td>The smallest first request, in tokens, for which the notice shows.</td></tr>
@@ -435,7 +438,14 @@ A fresh start from a short brief re-writes ~55k tokens (~US$0.44): /clear, then 
       </section>
 
       <section id="upgrading" aria-labelledby="upgrading-h">
-        <h2 id="upgrading-h"><span class="num">10</span>Upgrading from 0.3.0</h2>
+        <h2 id="upgrading-h"><span class="num">10</span>Upgrading</h2>
+        <p><strong>From 0.4:</strong></p>
+        <ul>
+          <li><strong>Noisy commands run as written.</strong> They're no longer rewritten to <code>node '…/thinwindow-run.mjs' &lt;cmd&gt;</code>; a hook after each <code>Bash</code> call cuts the output of the ones that succeed. A permission rule you added for <code>thinwindow-run</code> is no longer needed.</li>
+          <li><strong>In the desktop app</strong> the cold-resume notice lets the prompt through with one line. <code>"coldResumeMode"</code> picks the behavior.</li>
+          <li><strong><code>/thinwindow:report</code></strong> also counts the reads cut to an outline and the outputs cut.</li>
+        </ul>
+        <p><strong>From 0.3.0:</strong></p>
         <p>Nothing that worked stops working, and every new part has its own off switch.</p>
         <ul>
           <li><strong>New hooks:</strong> at the end of each turn (the brief and the setup-cost notice), and before each prompt (the cold-resume notice).</li>
@@ -461,8 +471,8 @@ A fresh start from a short brief re-writes ~55k tokens (~US$0.44): /clear, then 
       <section id="privacy" aria-labelledby="privacy-h">
         <h2 id="privacy-h"><span class="num">12</span>What it reads, writes and sends</h2>
         <ul>
-          <li><strong>Reads:</strong> the tool call Claude Code passes to the hooks (a file path, a command or a search pattern), and the line count and outline of files Claude is about to read or print; its settings in <code>.thinwindow.json</code>; the environment variables <code>THINWINDOW</code>, <code>THINWINDOW_DEBUG</code>, <code>CLAUDE_PROJECT_DIR</code>, <code>CLAUDE_PLUGIN_DATA</code> and <code>CLAUDE_CODE_SESSION_ATTENDED</code>; before each prompt, the last 256 KB of the session's transcript, and the first 256 KB when a cold-resume notice is due; at the end of each turn, the part of the transcript written since the last turn, and its first 256 KB while a setup-cost notice may be due; and <code>git status</code> in the session's folder after a turn that could have changed files. <code>/thinwindow:resume</code> also runs <code>git log</code> there. It reads no credentials.</li>
-          <li><strong>Writes, to your operating system's temp folder:</strong> one small file per session (which files and ranges were read, recent refusals, when a cold-resume notice was last shown, and counts of what the hooks did), one tiny file per project (when the setup-cost notice was last shown), and the full log of each command run through <code>thinwindow-run</code>.</li>
+          <li><strong>Reads:</strong> the tool call Claude Code passes to the hooks (a file path, a command or a search pattern), and the line count and outline of files Claude is about to read or print; its settings in <code>.thinwindow.json</code>; the environment variables <code>THINWINDOW</code>, <code>THINWINDOW_DEBUG</code>, <code>CLAUDE_PROJECT_DIR</code>, <code>CLAUDE_PLUGIN_DATA</code>, <code>CLAUDE_CODE_SESSION_ATTENDED</code> and <code>CLAUDE_CODE_ENTRYPOINT</code>; the output of each <code>Bash</code> call that succeeded, of which it keeps and cuts only a noisy command's; before each prompt, the last 256 KB of the session's transcript, and the first 256 KB when a cold-resume notice is due; at the end of each turn, the part of the transcript written since the last turn, and its first 256 KB while a setup-cost notice may be due; and <code>git status</code> in the session's folder after a turn that could have changed files. <code>/thinwindow:resume</code> also runs <code>git log</code> there. It reads no credentials.</li>
+          <li><strong>Writes, to your operating system's temp folder:</strong> one small file per session (which files and ranges were read, recent refusals, when a cold-resume notice was last shown, and counts of what the hooks did), one tiny file per project (when the setup-cost notice was last shown), and the full log of each command whose output was cut or that ran through <code>thinwindow-run</code>, in folders created so only your user can open them.</li>
           <li><strong>Writes, to the plugin's data folder</strong> (<code>~/.claude/plugins/data/</code>): one small brief per session, in a folder per project. A brief holds <strong>excerpts of your prompts and of Claude's replies</strong>: the first prompt (up to 200 characters), the last three requests (up to 80 each), the last reply (up to 1,200), the changed files, and the last four commands (up to 70 characters each) with their exit codes. <code>"briefs": false</code> stops writing them.</li>
           <li><strong>Deletes:</strong> ThinWindow removes its files once they're 7 days old, the next time it runs. Claude Code deletes the plugin's data folder when you uninstall the plugin. If you remove ThinWindow from your account in the Claude desktop app, briefs can stay; delete the <code>thinwindow-*</code> folder in <code>~/.claude/plugins/data/</code> to remove them.</li>
           <li><strong>Sends:</strong> nothing. There is no network code. A brief enters a conversation only when you type <code>/thinwindow:resume</code>.</li>
@@ -519,7 +529,7 @@ A fresh start from a short brief re-writes ~55k tokens (~US$0.44): /clear, then 
         </details>
         <details>
           <summary>Will the cold-resume notice interrupt me?</summary>
-          <p>At most once per idle gap: only after an hour idle, and only over 100k tokens of context. Send the prompt again to continue, or turn it off with <code>"coldResumeNotice": false</code>.</p>
+          <p>At most once per idle gap: only after an hour idle, and only over 100k tokens of context. Send the prompt again to continue, In the desktop app it doesn't hold the prompt; it adds one line. Turn it off with <code>"coldResumeMode": "off"</code>.</p>
         </details>
         <details>
           <summary>Does it send my code or telemetry anywhere?</summary>
