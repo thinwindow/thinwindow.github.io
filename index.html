@@ -20,7 +20,7 @@
   <aside class="sidebar">
     <a class="brand" href="#overview">
       <img src="assets/icon.iconset/icon_32x32@2x.png" alt="" width="32" height="32">
-      <span>ThinWindow <small>docs · v0.5.0</small></span>
+      <span>ThinWindow <small>docs · v0.5.1</small></span>
     </a>
     <nav aria-label="Documentation">
       <div class="nav-group">
@@ -252,7 +252,8 @@ Say less
           <tbody>
             <tr><td>Noisy commands</td><td>install, build, test and lint for npm, pnpm, yarn, bun, pip, uv, poetry, pytest, cargo, go, gradle, maven, dotnet, make and more</td><td>Run as written, so your permission rules match them. When one succeeds with more than 10 lines on a stream, a <code>PostToolUse</code> hook cuts that stream to its last 10 lines and adds the path of the full log. A failed run, or a command that also runs something else, comes back whole. Already capped commands (a pipe, a redirect, a quiet flag) and background commands are left alone. With <code>"rewrite": false</code>, a soft block.</td></tr>
             <tr><td>Unbounded scope</td><td>Recursive <code>grep</code>/<code>rg</code>/<code>ag</code> over the whole tree with no cap or exclude; a bare <code>git diff</code></td><td>Fixed in place: the search is limited to its first 100 lines (grep also skips <code>node_modules</code>, <code>.git</code>, <code>dist</code>, <code>build</code>), and <code>git diff</code> runs as <code>git diff --stat</code>. With <code>"rewrite": false</code>, a soft block.</td></tr>
-            <tr><td>Anti-patterns</td><td><code>cat</code> (or <code>bat</code>, <code>less</code>, <code>more</code>, <code>nl</code>, <code>tac</code>) of a big, lock, minified or binary file; <code>git log</code> without <code>-n</code>, a range or <code>--since</code>; <code>ls -R</code>; <code>tree</code> without <code>-L</code>; <code>find</code> from the repo root without <code>-maxdepth</code> (with <code>-delete</code> it runs; with <code>-exec</code>, a soft block)</td><td>Refused, with a cheaper replacement. Output piped into <code>head</code>, <code>tail</code>, <code>grep</code>, <code>wc</code> and similar, or redirected to a file, counts as capped and is not blocked.</td></tr>
+            <tr><td>Unbounded listings</td><td><code>git log</code> without <code>-n</code>, a range or <code>--since</code>; <code>ls -R</code>; <code>tree</code> without <code>-L</code>; <code>find</code> from the repo root without <code>-maxdepth</code> (with <code>-delete</code> it runs; with <code>-exec</code>, a soft block)</td><td>Fixed in place, since 0.5.1: <code>ls -R</code>, <code>tree</code> and <code>find</code> are capped to their first 100 lines, and <code>git log</code> to the last 20 commits. The command runs, so the session shows no failed tool call. With <code>"rewrite": false</code>, refused as before.</td></tr>
+            <tr><td>Anti-patterns</td><td><code>cat</code> (or <code>bat</code>, <code>less</code>, <code>more</code>, <code>nl</code>, <code>tac</code>) of a big, lock, minified or binary file</td><td>Refused, with a cheaper replacement. Output piped into <code>head</code>, <code>tail</code>, <code>grep</code>, <code>wc</code> and similar, or redirected to a file, counts as capped and is not blocked.</td></tr>
           </tbody>
         </table></div>
 
@@ -358,6 +359,7 @@ A fresh start from a short brief re-writes ~55k tokens (~US$0.44): /clear, then 
         <h3>From the plugin directory</h3>
         <p>In the Claude desktop app, Customize → Plugins → Discover → ThinWindow. In Claude Code, <code>/plugin</code> → Discover → ThinWindow, or:</p>
 <pre><code>claude plugin install thinwindow@anthropic-plugin-directory</code></pre>
+        <p>The directory serves 0.4.0 for now; the newest version installs from the repository.</p>
 
         <h3>From the repository, in Claude Code</h3>
 <pre><code>/plugin marketplace add thinwindow/thinwindow
